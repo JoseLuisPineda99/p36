@@ -1,91 +1,40 @@
-import { useState } from "react";
+export default function Home() {
+  return (
+    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
+      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
+       <h1 className="text-4xl font-bold">Hola, esto es la p36</h1>
+       <p>Esta es una práctica de deploy con Vercel.</p>
+      {/* Formulario para crear un nuevo elemento */}
+      <form className="flex flex-col gap-2 w-full max-w-md" method="POST" action="/api/items">
+        <h2 className="text-xl font-semibold">Crear nuevo ítem</h2>
+        <input name="name" type="text" placeholder="Nombre" required className="border p-2 rounded" />
+        <input name="description" type="text" placeholder="Descripción" required className="border p-2 rounded" />
+        <button type="submit" className="bg-blue-500 text-white p-2 rounded">Crear</button>
+      </form>
 
-function Home() {
-    const [users, setUsers] = useState([]);
-    const [form, setForm] = useState({ name: "", email: "" });
-    const [editingIndex, setEditingIndex] = useState(null);
+      {/* Formulario para leer un elemento por ID */}
+      <form className="flex flex-col gap-2 w-full max-w-md mt-8" method="GET" action="/api/items">
+        <h2 className="text-xl font-semibold">Buscar ítem por ID</h2>
+        <input name="id" type="text" placeholder="ID del ítem" required className="border p-2 rounded" />
+        <button type="submit" className="bg-green-500 text-white p-2 rounded">Buscar</button>
+      </form>
 
-    const handleChange = (e) => {
-      setForm({ ...form, [e.target.name]: e.target.value });
-    };
+      {/* Formulario para actualizar un elemento */}
+      <form className="flex flex-col gap-2 w-full max-w-md mt-8" method="POST" action="/api/items/update">
+        <h2 className="text-xl font-semibold">Actualizar ítem</h2>
+        <input name="id" type="text" placeholder="ID del ítem" required className="border p-2 rounded" />
+        <input name="name" type="text" placeholder="Nuevo nombre" className="border p-2 rounded" />
+        <input name="description" type="text" placeholder="Nueva descripción" className="border p-2 rounded" />
+        <button type="submit" className="bg-yellow-500 text-white p-2 rounded">Actualizar</button>
+      </form>
 
-    const handleSubmit = (e) => {
-      e.preventDefault();
-      if (editingIndex !== null) {
-        const updated = [...users];
-        updated[editingIndex] = form;
-        setUsers(updated);
-        setEditingIndex(null);
-      } else {
-        setUsers([...users, form]);
-      }
-      setForm({ name: "", email: "" });
-    };
-
-    const handleEdit = (idx) => {
-      setForm(users[idx]);
-      setEditingIndex(idx);
-    };
-
-    const handleDelete = (idx) => {
-      setUsers(users.filter((_, i) => i !== idx));
-      if (editingIndex === idx) {
-        setForm({ name: "", email: "" });
-        setEditingIndex(null);
-      }
-    };
-
-    return (
-      <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-        <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start w-full max-w-xl">
-          <h1 className="text-4xl font-bold">CRUD de Usuarios</h1>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-2 w-full">
-            <input
-              name="name"
-              placeholder="Nombre"
-              value={form.name}
-              onChange={handleChange}
-              className="border p-2 rounded"
-              required
-            />
-            <input
-              name="email"
-              placeholder="Email"
-              value={form.email}
-              onChange={handleChange}
-              className="border p-2 rounded"
-              required
-              type="email"
-            />
-            <button type="submit" className="bg-blue-600 text-white p-2 rounded">
-              {editingIndex !== null ? "Actualizar" : "Agregar"}
-            </button>
-          </form>
-          <ul className="w-full mt-4">
-            {users.map((user, idx) => (
-              <li key={idx} className="flex justify-between items-center border-b py-2">
-                <span>
-                  <strong>{user.name}</strong> ({user.email})
-                </span>
-                <span className="flex gap-2">
-                  <button
-                    onClick={() => handleEdit(idx)}
-                    className="bg-yellow-400 text-black px-2 py-1 rounded"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    onClick={() => handleDelete(idx)}
-                    className="bg-red-600 text-white px-2 py-1 rounded"
-                  >
-                    Eliminar
-                  </button>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </main>
-      </div>
-    );
-  }
-export default Home;
+      {/* Formulario para eliminar un elemento */}
+      <form className="flex flex-col gap-2 w-full max-w-md mt-8" method="POST" action="/api/items/delete">
+        <h2 className="text-xl font-semibold">Eliminar ítem</h2>
+        <input name="id" type="text" placeholder="ID del ítem" required className="border p-2 rounded" />
+        <button type="submit" className="bg-red-500 text-white p-2 rounded">Eliminar</button>
+      </form>
+      </main>
+    </div>
+  );
+}
