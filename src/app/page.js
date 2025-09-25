@@ -1,40 +1,90 @@
+"use client";
+import { useEffect, useState } from "react";
+
 export default function Home() {
+  const [users, setUsers] = useState([]);
+  const [form, setForm] = useState({ name: "", email: "" });
+  const [editingId, setEditingId] = useState(null);
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  async function fetchUsers() {
+    const res = await fetch("/api/users");
+    const data = await res.json();
+    setUsers(data);
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (editingId) {
+      await fetch("/api/users", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editingId, ...form }),
+      });
+      setEditingId(null);
+    } else {
+      await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+    }
+    setForm({ name: "", email: "" });
+    fetchUsers();
+  }
+
+  async function handleDelete(id) {
+    await fetch("/api/users", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    fetchUsers();
+  }
+
+  function handleEdit(user) {
+    setForm({ name: user.name, email: user.email });
+    setEditingId(user._id);
+  }
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-       <h1 className="text-4xl font-bold">Hola, esto es la p36</h1>
-       <p>Esta es una práctica de deploy con Vercel.</p>
-      {/* Formulario para crear un nuevo elemento */}
-      <form className="flex flex-col gap-2 w-full max-w-md" method="POST" action="/api/items">
-        <h2 className="text-xl font-semibold">Crear nuevo ítem</h2>
-        <input name="name" type="text" placeholder="Nombre" required className="border p-2 rounded" />
-        <input name="description" type="text" placeholder="Descripción" required className="border p-2 rounded" />
-        <button type="submit" className="bg-blue-500 text-white p-2 rounded">Crear</button>
+    <div style={{ fontFamily: "sans-serif", padding: "20px" }}>
+      <h1>CRUD de Usuarios</h1>
+
+      <form onSubmit={handleSubmit} style={{ marginBottom: "20px" }}>
+        <input
+          type="text"
+          placeholder="Nombre"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          required
+        />
+        <input
+          type="email"
+          placeholder="Email"
+          value={form.email}
+          onChange={(e) => setForm({ ...form, email: e.target.value })}
+          required
+        />
+        <button type="submit">{editingId ? "Actualizar" : "Crear"}</button>
       </form>
 
-      {/* Formulario para leer un elemento por ID */}
-      <form className="flex flex-col gap-2 w-full max-w-md mt-8" method="GET" action="/api/items">
-        <h2 className="text-xl font-semibold">Buscar ítem por ID</h2>
-        <input name="id" type="text" placeholder="ID del ítem" required className="border p-2 rounded" />
-        <button type="submit" className="bg-green-500 text-white p-2 rounded">Buscar</button>
-      </form>
-
-      {/* Formulario para actualizar un elemento */}
-      <form className="flex flex-col gap-2 w-full max-w-md mt-8" method="POST" action="/api/items/update">
-        <h2 className="text-xl font-semibold">Actualizar ítem</h2>
-        <input name="id" type="text" placeholder="ID del ítem" required className="border p-2 rounded" />
-        <input name="name" type="text" placeholder="Nuevo nombre" className="border p-2 rounded" />
-        <input name="description" type="text" placeholder="Nueva descripción" className="border p-2 rounded" />
-        <button type="submit" className="bg-yellow-500 text-white p-2 rounded">Actualizar</button>
-      </form>
-
-      {/* Formulario para eliminar un elemento */}
-      <form className="flex flex-col gap-2 w-full max-w-md mt-8" method="POST" action="/api/items/delete">
-        <h2 className="text-xl font-semibold">Eliminar ítem</h2>
-        <input name="id" type="text" placeholder="ID del ítem" required className="border p-2 rounded" />
-        <button type="submit" className="bg-red-500 text-white p-2 rounded">Eliminar</button>
-      </form>
-      </main>
+      <ul>
+        {users.map((user) => (
+          <li key={user._id} style={{ marginBottom: "10px" }}>
+            <b>{user.name}</b> - {user.email}
+            <button onClick={() => handleEdit(user)} style={{ marginLeft: "10px" }}>
+              Editar
+            </button>
+            <button onClick={() => handleDelete(user._id)} style={{ marginLeft: "10px" }}>
+              Borrar
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
