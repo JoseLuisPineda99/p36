@@ -1,12 +1,20 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Home() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState("user");
   const [token, setToken] = useState("");
   const [message, setMessage] = useState("");
   const [users, setUsers] = useState([]);
+  const [editingUser, setEditingUser] = useState(null);
+
+  useEffect(() => {
+    if (token) {
+      fetchUsers();
+    }
+  }, [token]);
 
   // Función para hacer login
   async function handleLogin(e) {
@@ -15,14 +23,14 @@ export default function Home() {
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ username, password }),
       });
-      
+
       const data = await res.json();
-      
+
       if (res.ok) {
         setToken(data.token);
-        setMessage(`Login exitoso! Usuario: ${data.user.email} (${data.user.role})`);
+        setMessage(`Login exitoso! Usuario: ${data.user.username} (${data.user.role})`);
       } else {
         setMessage(`Error: ${data.error}`);
       }
@@ -31,53 +39,94 @@ export default function Home() {
     }
   }
 
-  // Función para probar ruta protegida
-  async function testProtected() {
-    try {
-      const res = await fetch("/api/protected", {
-        headers: {
-          "Authorization": `Bearer ${token}`
-        }
-      });
-      
-      const data = await res.json();
-      
-      if (res.ok) {
-        setMessage(`Acceso a ruta protegida exitoso! Usuario: ${data.user.email}`);
-      } else {
-        setMessage(`Error: ${data.error}`);
-      }
-    } catch (error) {
-      setMessage("Error de conexión");
-    }
-  }
-
-  // Función para obtener usuarios (solo admins)
-  async function getUsers() {
+  // Función para obtener usuarios
+  async function fetchUsers() {
     try {
       const res = await fetch("/api/users", {
         headers: {
-          "Authorization": `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
-      
+
       const data = await res.json();
-      
+
       if (res.ok) {
         setUsers(data.users);
-        setMessage(`${data.users.length} usuarios encontrados`);
       } else {
         setMessage(`Error: ${data.error}`);
       }
     } catch (error) {
       setMessage("Error de conexión");
     }
+  }
+
+  // Función para crear o actualizar un usuario
+  async function handleSubmit(e) {
+    e.preventDefault();
+    try {
+      const method = editingUser ? "PUT" : "POST";
+      const url = editingUser ? `/api/users/${editingUser._id}` : "/api/users";
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ email, password, role }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setMessage(editingUser ? "Usuario actualizado" : "Usuario creado");
+        setEmail("");
+        setPassword("");
+        setRole("user");
+        setEditingUser(null);
+        fetchUsers();
+      } else {
+        setMessage(`Error: ${data.error}`);
+      }
+    } catch (error) {
+      setMessage("Error de conexión");
+    }
+  }
+
+  // Función para eliminar un usuario
+  async function handleDelete(userId) {
+    try {
+      const res = await fetch(`/api/users/${userId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setMessage("Usuario eliminado");
+        fetchUsers();
+      } else {
+        setMessage(`Error: ${data.error}`);
+      }
+    } catch (error) {
+      setMessage("Error de conexión");
+    }
+  }
+
+  // Función para cargar datos de un usuario en el formulario
+  function handleEdit(user) {
+    setEmail(user.email);
+    setRole(user.role);
+    setEditingUser(user);
   }
 
   return (
     <div style={{ fontFamily: "sans-serif", padding: "20px", maxWidth: "600px" }}>
-      <h1>Proyecto P36 - JWT Authentication</h1>
-      
+      <h1>Proyecto P36 - CRUD de Usuarios</h1>
+
       <div style={{ marginBottom: "30px", padding: "20px", border: "1px solid #ccc" }}>
         <h2>1. Login</h2>
         <form onSubmit={handleLogin}>
@@ -103,39 +152,58 @@ export default function Home() {
           </div>
           <button type="submit" style={{ padding: "8px 16px" }}>Login</button>
         </form>
-        
-        {token && (
-          <div style={{ marginTop: "10px", fontSize: "12px" }}>
-            <strong>Token:</strong> <span style={{ wordBreak: "break-all" }}>{token}</span>
-          </div>
-        )}
       </div>
 
-      <div style={{ marginBottom: "20px", padding: "20px", border: "1px solid #ccc" }}>
-        <h2>2. Probar Rutas</h2>
-        <button 
-          onClick={testProtected} 
-          disabled={!token}
-          style={{ padding: "8px 16px", marginRight: "10px" }}
-        >
-          Ruta Protegida
-        </button>
-        <button 
-          onClick={getUsers} 
-          disabled={!token}
-          style={{ padding: "8px 16px" }}
-        >
-          Obtener Usuarios (Admin)
-        </button>
-      </div>
+      {token && (
+        <div style={{ marginBottom: "30px", padding: "20px", border: "1px solid #ccc" }}>
+          <h2>2. Crear/Editar Usuario</h2>
+          <form onSubmit={handleSubmit}>
+            <div style={{ marginBottom: "10px" }}>
+              <input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                style={{ width: "200px", marginRight: "10px", padding: "5px" }}
+              />
+            </div>
+            <div style={{ marginBottom: "10px" }}>
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                style={{ width: "200px", marginRight: "10px", padding: "5px" }}
+              />
+            </div>
+            <div style={{ marginBottom: "10px" }}>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                style={{ padding: "5px" }}
+              >
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <button type="submit" style={{ padding: "8px 16px" }}>
+              {editingUser ? "Actualizar Usuario" : "Crear Usuario"}
+            </button>
+          </form>
+        </div>
+      )}
 
       {message && (
-        <div style={{ 
-          padding: "10px", 
-          backgroundColor: message.includes("Error") ? "#ffebee" : "#e8f5e8",
-          border: `1px solid ${message.includes("Error") ? "#f44336" : "#4caf50"}`,
-          marginBottom: "20px"
-        }}>
+        <div
+          style={{
+            padding: "10px",
+            backgroundColor: message.includes("Error") ? "#ffebee" : "#e8f5e8",
+            border: `1px solid ${message.includes("Error") ? "#f44336" : "#4caf50"}`,
+            marginBottom: "20px",
+          }}
+        >
           {message}
         </div>
       )}
@@ -145,23 +213,25 @@ export default function Home() {
           <h2>3. Lista de Usuarios</h2>
           <ul>
             {users.map((user) => (
-              <li key={user._id} style={{ marginBottom: "5px" }}>
+              <li key={user._id} style={{ marginBottom: "10px" }}>
                 <strong>{user.email}</strong> - Role: {user.role}
+                <button
+                  onClick={() => handleEdit(user)}
+                  style={{ marginLeft: "10px", padding: "5px 10px" }}
+                >
+                  Editar
+                </button>
+                <button
+                  onClick={() => handleDelete(user._id)}
+                  style={{ marginLeft: "10px", padding: "5px 10px" }}
+                >
+                  Eliminar
+                </button>
               </li>
             ))}
           </ul>
         </div>
       )}
-
-      <div style={{ marginTop: "30px", padding: "20px", backgroundColor: "#f5f5f5" }}>
-        <h3>📝 Instrucciones de uso:</h3>
-        <ol>
-          <li>Crear un usuario admin en MongoDB Atlas manualmente</li>
-          <li>Configurar variables de entorno (.env.local)</li>
-          <li>Hacer login con las credenciales</li>
-          <li>Probar las rutas protegidas</li>
-        </ol>
-      </div>
     </div>
   );
 }
