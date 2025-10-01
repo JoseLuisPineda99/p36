@@ -1,35 +1,8 @@
-import { requireAuth } from "../../../lib/auth";
-import { NextResponse } from "next/server";
+import { verifyToken } from "../../lib/auth";
 
-export async function GET(request) {
-  try {
-    const user = await requireAuth(request);
-    
-    if (!user) {
-      return NextResponse.json(
-        { error: "Access denied. Valid token required." },
-        { status: 401 }
-      );
-    }
+export default function handler(req, res) {
+  const user = verifyToken(req, res);
+  if (!user) return res.status(401).json({ message: "No autorizado" });
 
-    return NextResponse.json({
-      message: "Acceso permitido",
-      user: {
-        userId: user.userId,
-        email: user.email,
-        role: user.role
-      }
-    });
-
-  } catch (error) {
-    console.error("Protected route error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function POST(request) {
-  return GET(request); // Usar la misma lógica para POST
+  res.status(200).json({ message: `Hola ${user.id}, tu rol es ${user.role}` });
 }

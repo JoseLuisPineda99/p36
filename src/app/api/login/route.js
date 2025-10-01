@@ -1,67 +1,24 @@
+import connectToDatabase from "../../lib/mongodb";
+import User from "../../models/User";
 import bcrypt from "bcryptjs";
-import { connectToDatabase } from "../../../lib/mongodb";
-import { generateToken } from "../../../lib/auth";
-import { NextResponse } from "next/server";
+import jwt from "jsonwebtoken";
 
-export async function POST(request) {
-  try {
-    const { email, password } = await request.json();
+export default async function handler(req, res) {
+  if (req.method !== "POST") return res.status(405).end();
 
-    if (!email || !password) {
-      return NextResponse.json(
-        { error: "Email and password are required" },
-        { status: 400 }
-      );
-    }
+  const { username, password } = req.body;
 
-    const { db } = await connectToDatabase();
-    const user = await db.collection("users").findOne({ email });
+  await connectToDatabase();
 
-    if (!user) {
-      return NextResponse.json(
-        { error: "Usuario no encontrado" },
-        { status: 401 }
-      );
-    }
+  const user = await User.findOne({ username });
+  if (!user) return res.status(401).json({ message: "Usuario no encontrado" });
 
-    const isValid = await bcrypt.compare(password, user.password);
-    if (!isValid) {
-      return NextResponse.json(
-        { error: "Contraseña incorrecta" },
-        { status: 401 }
-      );
-    }
+  const isValid = await bcrypt.compare(password, user.password);
+  if (!isValid) return res.status(401).json({ message: "Contraseña incorrecta" });
 
-    // Generar token JWT
-    const token = generateToken({
-      userId: user._id,
-      email: user.email,
-      role: user.role || "user"
-    });
+  const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
+    expiresIn: "1d",
+  });
 
-    return NextResponse.json({
-      message: "Login successful",
-      token,
-      user: {
-        id: user._id,
-        email: user.email,
-        role: user.role || "user"
-      }
-    });
-
-  } catch (error) {
-    console.error("Login error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
-  }
-}
-
-// Método para manejar otros verbos HTTP
-export async function GET() {
-  return NextResponse.json(
-    { error: "Method not allowed" },
-    { status: 405 }
-  );
+  res.status(200).json({ token });
 }
